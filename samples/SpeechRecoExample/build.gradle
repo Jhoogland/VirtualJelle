@@ -1,0 +1,64 @@
+apply plugin: 'com.android.application'
+
+repositories {
+    maven {
+        name = 'Maven Central Repo' //optional name
+        url = 'http://repo1.maven.org/maven2/'
+    }
+}
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
+    packagingOptions {
+            exclude 'META-INF/DEPENDENCIES'
+            exclude 'META-INF/NOTICE'
+            exclude 'META-INF/LICENSE'
+            exclude 'META-INF/NOTICE.txt'
+            exclude 'META-INF/LICENSE.txt'
+    }
+
+    productFlavors {
+        x86 {
+            ndk {
+                abiFilter "x86"
+            }
+        }
+        arm {
+            ndk {
+                abiFilters "armeabi"
+            }
+        }
+    }
+
+    sourceSets {
+        main {
+            manifest.srcFile 'AndroidManifest.xml'
+            java.srcDirs = ['src']
+            resources.srcDirs = ['src']
+            aidl.srcDirs = ['src']
+            renderscript.srcDirs = ['src']
+            res.srcDirs = ['res']
+            assets.srcDirs = ['assets']
+            jniLibs.srcDir '../../SpeechSDK/libs'
+        }
+
+        debug.setRoot('build-types/debug')
+        release.setRoot('build-types/release')
+    }
+
+    lintOptions {
+        abortOnError false
+    }
+}
+
+
+dependencies {
+    compile 'com.squareup.okhttp:okhttp:2.5.0'
+    compile 'com.microsoft.projectoxford:speechrecognition:1.2.2'
+    compile files('libs/commons-logging-1.2.jar')
+    compile files('libs/httpclient-4.5.3.jar')
+    compile files('libs/httpcore-4.4.6.jar')
+}
+
