@@ -34,6 +34,8 @@ package com.microsoft.CognitiveServicesExample;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.res.AssetFileDescriptor;
+import android.content.res.AssetManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -441,6 +443,12 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             double startRatio = 0;
             for (int i = 0; i < arr.length(); i++)
             {
+                MediaPlayer mp = new MediaPlayer();
+                AssetManager manager = getAssets();
+                manager.
+                mp.setDataSource();
+                mp.setLooping(true);
+                mp.start();
                 JSONObject voorbeeld = arr.getJSONObject(i);
                 String intentJson = arr.getJSONObject(i).getString("intent");
                 if(intentJson.equalsIgnoreCase("Pensioen")){

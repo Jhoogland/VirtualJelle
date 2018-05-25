@@ -98,4 +98,3 @@ Sample images are licensed separately, please refer to [LICENSE-IMAGE](</LICENSE
 Developers using Cognitive Services, including this client library & sample, are expected to follow the "Developer Code of Conduct for Microsoft Cognitive Services", found at [http://go.microsoft.com/fwlink/?LinkId=698895](http://go.microsoft.com/fwlink/?LinkId=698895).
 # VirtualJelle
 # VirtualJelle
-# VirtualJelle
