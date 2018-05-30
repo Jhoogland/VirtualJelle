@@ -124,37 +124,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         return this.getString(R.string.primaryKey);
     }
 
-    private void GetUnderstanding(String phrase)
-    {
-        String AppId = "263793f1-ad87-4425-af6a-86ae3a8ab570";
-
-        // Add your subscription key
-        String SubscriptionKey = "a3e38c71094a4c98abb10a652aa52a86";
-
-        OkHttpClient client = new OkHttpClient();
-
-        HttpUrl.Builder urlBuilder = HttpUrl.parse("https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/" + AppId + "?").newBuilder();
-
-        urlBuilder.addQueryParameter("q", "Het is mooi weer vandaag");
-        urlBuilder.addQueryParameter("timezoneOffset", "0");
-        urlBuilder.addQueryParameter("verbose", "false");
-        urlBuilder.addQueryParameter("spellCheck", "false");
-        urlBuilder.addQueryParameter("staging", "false");
-
-        String url = urlBuilder.build().toString();
-
-        Request request = new Request.Builder()
-                .header("Ocp-Apim-Subscription-Key", SubscriptionKey)
-                .url(url)
-                .build();
-
-        try {
-            Response response = client.newCall(request).execute();
-        } catch (IOException e) {
-            System.out.println("Dit is een error! " + e);
-            e.printStackTrace();
-        }
-    }
     /**
      * Gets the LUIS application identifier.
      * @return The LUIS application identifier.
@@ -316,7 +285,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         for (int i = 0; i < response.Results.length; i++) {
             this.WriteLine("[" + i + "]" + " Confidence=" + response.Results[i].Confidence +
                     " Text=\"" + response.Results[i].DisplayText + "\"");
-                GetUnderstanding(response.Results[i].DisplayText);
         }
 
         this.WriteLine();
