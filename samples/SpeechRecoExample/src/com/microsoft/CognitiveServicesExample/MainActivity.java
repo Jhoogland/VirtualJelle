@@ -36,17 +36,20 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.StrictMode;
+import android.provider.MediaStore;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
 
+import com.microsoft.bing.speech.AudioStream;
 import com.microsoft.bing.speech.Conversation;
 import com.microsoft.bing.speech.SpeechClientStatus;
 import com.microsoft.cognitiveservices.speechrecognition.DataRecognitionClient;
@@ -70,6 +73,7 @@ import org.apache.http.util.EntityUtils;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.Console;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -95,6 +99,7 @@ import java.net.URL;
 import java.util.concurrent.TimeUnit;
 
 import android.os.StrictMode;
+import android.widget.Toast;
 
 import javax.net.ssl.HttpsURLConnection;
 
@@ -120,14 +125,14 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
     private void GetUnderstanding(String phrase)
     {
-        String AppId = "f34d75d0-9bda-4e50-a962-12237e840460";
+        String AppId = "263793f1-ad87-4425-af6a-86ae3a8ab570";
 
         // Add your subscription key
-        String SubscriptionKey = "e0baf6a91ca840c5b7d096e4fcd71e08";
+        String SubscriptionKey = "a3e38c71094a4c98abb10a652aa52a86";
 
         OkHttpClient client = new OkHttpClient();
 
-        HttpUrl.Builder urlBuilder = HttpUrl.parse("http://westus.api.cognitive.microsoft.com/luis/v2.0/apps/" + AppId + "?").newBuilder();
+        HttpUrl.Builder urlBuilder = HttpUrl.parse("https://westus.api.cognitive.microsoft.com/luis/v2.0/apps/" + AppId + "?").newBuilder();
 
         urlBuilder.addQueryParameter("q", "Het is mooi weer vandaag");
         urlBuilder.addQueryParameter("timezoneOffset", "0");
@@ -208,30 +213,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         return "nl-NL";
     }
 
-    /**
-     * Gets the short wave file path.
-     * @return The short wave file.
-     */
-    private String getShortWaveFile() {
-        return "whatstheweatherlike.wav";
-    }
-
-    private String getShortWeatherFile() {
-        return "hier in rotterdam schijnt de zon af en toe maar het is wel een beetje fris.mp3";
-    }
-
-
-    private String getHalloFile() {
-        return "hallo dag moeder.mp3";
-    }
-
-    /**
-     * Gets the long wave file path.
-     * @return The long wave file.
-     */
-    private String getLongWaveFile() {
-        return "batman.wav";
-    }
 
     /**
      * Gets the Cognitive Service Authentication Uri.
@@ -433,49 +414,38 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     public void onIntentReceived(final String payload) {
         this.WriteLine("--- Intent received by onIntentReceived() ---");
         this.WriteLine(payload);
+        System.out.println("Patrick2 " + payload);
+
+
+
+
         try {
             JSONObject jsonObj = new JSONObject(payload);
-            String intent = jsonObj.getString("intents");
-
             JSONArray arr = jsonObj.getJSONArray("intents");
-            double pensioenRatio = 0;
-            double weerRatio = 0;
-            double startRatio = 0;
-            for (int i = 0; i < arr.length(); i++)
-            {
-                MediaPlayer mp = new MediaPlayer();
-                AssetManager manager = getAssets();
-                manager.
-                mp.setDataSource();
-                mp.setLooping(true);
-                mp.start();
-                JSONObject voorbeeld = arr.getJSONObject(i);
-                String intentJson = arr.getJSONObject(i).getString("intent");
-                if(intentJson.equalsIgnoreCase("Pensioen")){
-                    pensioenRatio = arr.getJSONObject(i).getDouble("score");
-                }
-                if(intentJson.equalsIgnoreCase("Weer")){
-                    weerRatio = arr.getJSONObject(i).getDouble("score");
-                }
-                if(intentJson.equalsIgnoreCase("Start")){
-                    startRatio = arr.getJSONObject(i).getDouble("score");
-                }
-            }
+            String topScoringIntent = arr.getJSONObject(0).getString("intent");
+            System.out.println("TOPSCORINGINTENT " +topScoringIntent);
 
-            MediaPlayer mp = MediaPlayer.create(this, R.raw.hierinrotterdamschijntdezonafentoemaarhetisweleenbeetjefris);
 
-            if(pensioenRatio > weerRatio && pensioenRatio > startRatio){
-                mp = MediaPlayer.create(this, R.raw.noueengebondenleven);
-            }
-            else if(weerRatio > pensioenRatio && weerRatio > startRatio){
-                mp = MediaPlayer.create(this, R.raw.hierinrotterdamschijntdezonafentoemaarhetisweleenbeetjefris);
-            }
-            else if(startRatio > pensioenRatio && startRatio > weerRatio){
-                mp = MediaPlayer.create(this, R.raw.hallodagmoeder);
-            }
+            MediaPlayer mp = new MediaPlayer();
 
+            AssetFileDescriptor afd = getAssets().openFd(topScoringIntent.toLowerCase() + "/1.mp3");
+            mp.setDataSource(afd.getFileDescriptor(),afd.getStartOffset(),afd.getLength());
+
+
+            File geluidsbestand = new File("assets/"+ topScoringIntent + "/1.mp3");
+            System.out.println("GELUIDSBESTAND " +geluidsbestand.getName());
+
+
+            //MediaPlayer mp = MediaPlayer.create(this, Uri.parse("assets/"+ topScoringIntent.toLowerCase() + "/1.mp3"));
+
+            //System.out.println("URIPARSE " + Uri.parse("assets/"+ topScoringIntent.toLowerCase() + "/1.mp3"));
+
+            mp.prepare();
             mp.start();
+
         } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (IOException e) {
             e.printStackTrace();
         }
         this.WriteLine();
