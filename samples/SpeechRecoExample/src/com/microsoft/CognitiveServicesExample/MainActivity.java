@@ -298,9 +298,10 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                             mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
                             mp.prepare();
                             mp.start();
-                            TimeUnit.MILLISECONDS.SECONDS.sleep(5000 + mp.getDuration());
+                            TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
 
             }
+
             if(!isTheEnd){
                 checkEndMicrophone();
                 startMicrophone();
