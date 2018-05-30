@@ -298,6 +298,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         this.WriteLine("--- Intent received by onIntentReceived() ---");
         this.WriteLine(payload);
 
+        boolean isTheEnd = false;
         try {
             JSONObject jsonObj = new JSONObject(payload);
             JSONArray arr = jsonObj.getJSONArray("intents");
@@ -320,6 +321,14 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                             TimeUnit.SECONDS.sleep(5);
 
             }
+            if(!isTheEnd){
+                startMicrophone();
+            }
+
+            else{
+                // eindig hier het gesprek
+            }
+
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (IOException e) {
@@ -328,6 +337,34 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             e.printStackTrace();
         }
         this.WriteLine();
+    }
+
+    public void startMicrophone(){
+
+        if (null != this.micClient) {
+            // we got the final result, so it we can end the mic reco.  No need to do this
+            // for dataReco, since we already called endAudio() on it as soon as we were done
+            // sending all the data.
+            this.micClient.endMicAndRecognition();
+        }
+
+        if (this.micClient == null) {
+            this.WriteLine("--- Start microphone dictation with Intent detection ----");
+
+            this.micClient =
+                    SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
+                            this,
+                            this.getDefaultLocale(),
+                            this,
+                            this.getPrimaryKey(),
+                            this.getLuisAppId(),
+                            this.getLuisSubscriptionID());
+
+
+            this.micClient.setAuthenticationUri(this.getAuthenticationUri());
+        }
+
+        this.micClient.startMicAndRecognition();
     }
 
     public void onPartialResponseReceived(final String response) {
