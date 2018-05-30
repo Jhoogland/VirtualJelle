@@ -304,8 +304,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             JSONArray arr = jsonObj.getJSONArray("intents");
             String topScoringIntent = arr.getJSONObject(0).getString("intent");
 
-
-
             String[] files = getAssets().list(topScoringIntent.toLowerCase());
             AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[files.length];
             for (int i = 0; i < files.length; i++){
@@ -318,7 +316,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                             mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
                             mp.prepare();
                             mp.start();
-                            TimeUnit.SECONDS.sleep(5);
+                            TimeUnit.MILLISECONDS.SECONDS.sleep(5000 + mp.getDuration());
 
             }
             if(!isTheEnd){
