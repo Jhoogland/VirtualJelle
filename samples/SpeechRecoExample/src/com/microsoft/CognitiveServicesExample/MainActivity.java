@@ -230,24 +230,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
         this.LogRecognitionStart();
 
-
-            if (this.micClient == null) {
-                this.WriteLine("--- Start microphone dictation with Intent detection ----");
-
-                this.micClient =
-                    SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
-                        this,
-                        this.getDefaultLocale(),
-                        this,
-                        this.getPrimaryKey(),
-                        this.getLuisAppId(),
-                        this.getLuisSubscriptionID());
-
-
-                this.micClient.setAuthenticationUri(this.getAuthenticationUri());
-            }
-
-            this.micClient.startMicAndRecognition();
+        startMicrophone();
     }
 
     /**
@@ -274,12 +257,11 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
     public void onFinalResponseReceived(final RecognitionResult response) {
 
-        if (null != this.micClient) {
+        checkEndMicrophone();
             // we got the final result, so it we can end the mic reco.  No need to do this
             // for dataReco, since we already called endAudio() on it as soon as we were done
             // sending all the data.
             this.micClient.endMicAndRecognition();
-        }
 
         this.WriteLine("********* Final n-BEST Results *********");
         for (int i = 0; i < response.Results.length; i++) {
@@ -320,6 +302,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
             }
             if(!isTheEnd){
+                checkEndMicrophone();
                 startMicrophone();
             }
 
@@ -338,14 +321,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     }
 
     public void startMicrophone(){
-
-        if (null != this.micClient) {
-            // we got the final result, so it we can end the mic reco.  No need to do this
-            // for dataReco, since we already called endAudio() on it as soon as we were done
-            // sending all the data.
-            this.micClient.endMicAndRecognition();
-        }
-
         if (this.micClient == null) {
             this.WriteLine("--- Start microphone dictation with Intent detection ----");
 
@@ -363,6 +338,15 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         }
 
         this.micClient.startMicAndRecognition();
+    }
+
+    public void checkEndMicrophone(){
+        if (null != this.micClient) {
+            // we got the final result, so it we can end the mic reco.  No need to do this
+            // for dataReco, since we already called endAudio() on it as soon as we were done
+            // sending all the data.
+            this.micClient.endMicAndRecognition();
+        }
     }
 
     public void onPartialResponseReceived(final String response) {
