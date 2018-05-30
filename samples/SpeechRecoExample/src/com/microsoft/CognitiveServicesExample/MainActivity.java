@@ -41,12 +41,14 @@ import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.CountDownTimer;
 import android.os.StrictMode;
 import android.provider.MediaStore;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageButton;
 import android.widget.RadioGroup;
 
 import com.microsoft.bing.speech.AudioStream;
@@ -110,9 +112,8 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     MicrophoneRecognitionClient micClient = null;
     FinalResponseStatus isReceivedResponse = FinalResponseStatus.NotReceived;
     EditText _logText;
-    RadioGroup _radioGroup;
-    Button _buttonSelectMode;
-    Button _startButton;
+    ImageButton _startButton;
+    ImageButton _stopButton;
 
     public enum FinalResponseStatus { NotReceived, OK, Timeout }
 
@@ -170,38 +171,13 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         return this.getString(R.string.luisSubscriptionID);
     }
 
-    /**
-     * Gets a value indicating whether or not to use the microphone.
-     * @return true if [use microphone]; otherwise, false.
-     */
-    private Boolean getUseMicrophone() {
-        int id = this._radioGroup.getCheckedRadioButtonId();
-        return id == R.id.micIntentRadioButton ||
-                id == R.id.micDictationRadioButton ||
-                id == (R.id.micRadioButton - 1);
-    }
 
-    /**
-     * Gets a value indicating whether LUIS results are desired.
-     * @return true if LUIS results are to be returned otherwise, false.
-     */
-    private Boolean getWantIntent() {
-        int id = this._radioGroup.getCheckedRadioButtonId();
-        return id == R.id.dataShortIntentRadioButton ||
-                id == R.id.micIntentRadioButton;
-    }
 
     /**
      * Gets the current speech recognition mode.
      * @return The speech recognition mode.
      */
     private SpeechRecognitionMode getMode() {
-        int id = this._radioGroup.getCheckedRadioButtonId();
-        if (id == R.id.micDictationRadioButton ||
-                id == R.id.dataLongRadioButton) {
-            return SpeechRecognitionMode.LongDictation;
-        }
-
         return SpeechRecognitionMode.ShortPhrase;
     }
 
@@ -233,9 +209,8 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         }
 
         this._logText = (EditText) findViewById(R.id.editText1);
-        this._radioGroup = (RadioGroup)findViewById(R.id.groupMode);
-        this._buttonSelectMode = (Button)findViewById(R.id.buttonSelectMode);
-        this._startButton = (Button) findViewById(R.id.button1);
+        this._startButton = (ImageButton) findViewById(R.id.imageButton);
+        this._stopButton = (ImageButton) findViewById(R.id.imageButton2);
 
         if (getString(R.string.primaryKey).startsWith("Please")) {
             new AlertDialog.Builder(this)
@@ -254,19 +229,13 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             }
         });
 
-        this._buttonSelectMode.setOnClickListener(new OnClickListener() {
+        this._stopButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View arg0) {
-                This.ShowMenu(This._radioGroup.getVisibility() == View.INVISIBLE);
+                This.StartButton_Click(arg0);
             }
         });
 
-        this._radioGroup.setOnCheckedChangeListener(new RadioGroup.OnCheckedChangeListener() {
-            @Override
-            public void onCheckedChanged(RadioGroup rGroup, int checkedId) {
-                This.RadioButton_Click(rGroup, checkedId);
-            }
-        });
 
         this.ShowMenu(true);
     }
@@ -274,10 +243,8 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
     private void ShowMenu(boolean show) {
         if (show) {
-            this._radioGroup.setVisibility(View.VISIBLE);
             this._logText.setVisibility(View.INVISIBLE);
         } else {
-            this._radioGroup.setVisibility(View.INVISIBLE);
             this._logText.setText("");
             this._logText.setVisibility(View.VISIBLE);
         }
@@ -287,7 +254,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
      */
     private void StartButton_Click(View arg0) {
         this._startButton.setEnabled(false);
-        this._radioGroup.setEnabled(false);
 
         this.m_waitSeconds = this.getMode() == SpeechRecognitionMode.ShortPhrase ? 20 : 200;
 
@@ -295,74 +261,31 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
         this.LogRecognitionStart();
 
-        if (this.getUseMicrophone()) {
-            if (this.micClient == null) {
-                if (this.getWantIntent()) {
-                    this.WriteLine("--- Start microphone dictation with Intent detection ----");
 
-                    this.micClient =
-                            SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
-                                    this,
-                                    this.getDefaultLocale(),
-                                    this,
-                                    this.getPrimaryKey(),
-                                    this.getLuisAppId(),
-                                    this.getLuisSubscriptionID());
-                }
-                else
-                {
-                    this.micClient = SpeechRecognitionServiceFactory.createMicrophoneClient(
-                            this,
-                            this.getMode(),
-                            this.getDefaultLocale(),
-                            this,
-                            this.getPrimaryKey());
-                }
+            if (this.micClient == null) {
+                this.WriteLine("--- Start microphone dictation with Intent detection ----");
+
+                this.micClient =
+                    SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
+                        this,
+                        this.getDefaultLocale(),
+                        this,
+                        this.getPrimaryKey(),
+                        this.getLuisAppId(),
+                        this.getLuisSubscriptionID());
+
 
                 this.micClient.setAuthenticationUri(this.getAuthenticationUri());
             }
 
             this.micClient.startMicAndRecognition();
-        }
-        else
-        {
-            if (null == this.dataClient) {
-                if (this.getWantIntent()) {
-                    this.dataClient =
-                            SpeechRecognitionServiceFactory.createDataClientWithIntent(
-                                    this,
-                                    this.getDefaultLocale(),
-                                    this,
-                                    this.getPrimaryKey(),
-                                    this.getLuisAppId(),
-                                    this.getLuisSubscriptionID());
-                }
-                else {
-                    this.dataClient = SpeechRecognitionServiceFactory.createDataClient(
-                            this,
-                            this.getMode(),
-                            this.getDefaultLocale(),
-                            this,
-                            this.getPrimaryKey());
-                }
-
-                this.dataClient.setAuthenticationUri(this.getAuthenticationUri());
-            }
-        }
     }
 
     /**
      * Logs the recognition start.
      */
     private void LogRecognitionStart() {
-        String recoSource;
-        if (this.getUseMicrophone()) {
-            recoSource = "microphone";
-        } else if (this.getMode() == SpeechRecognitionMode.ShortPhrase) {
-            recoSource = "short wav file";
-        } else {
-            recoSource = "long wav file";
-        }
+        String recoSource = "microphone";
 
         this.WriteLine("\n--- Start speech recognition using " + recoSource + " with " + this.getMode() + " mode in " + this.getDefaultLocale() + " language ----\n\n");
     }
@@ -381,31 +304,23 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     }
 
     public void onFinalResponseReceived(final RecognitionResult response) {
-        boolean isFinalDicationMessage = this.getMode() == SpeechRecognitionMode.LongDictation &&
-                (response.RecognitionStatus == RecognitionStatus.EndOfDictation ||
-                        response.RecognitionStatus == RecognitionStatus.DictationEndSilenceTimeout);
-        if (null != this.micClient && this.getUseMicrophone() && ((this.getMode() == SpeechRecognitionMode.ShortPhrase) || isFinalDicationMessage)) {
+
+        if (null != this.micClient) {
             // we got the final result, so it we can end the mic reco.  No need to do this
             // for dataReco, since we already called endAudio() on it as soon as we were done
             // sending all the data.
             this.micClient.endMicAndRecognition();
         }
 
-        if (isFinalDicationMessage) {
-            this._startButton.setEnabled(true);
-            this.isReceivedResponse = FinalResponseStatus.OK;
+        this.WriteLine("********* Final n-BEST Results *********");
+        for (int i = 0; i < response.Results.length; i++) {
+            this.WriteLine("[" + i + "]" + " Confidence=" + response.Results[i].Confidence +
+                    " Text=\"" + response.Results[i].DisplayText + "\"");
+                GetUnderstanding(response.Results[i].DisplayText);
         }
 
-        if (!isFinalDicationMessage) {
-            this.WriteLine("********* Final n-BEST Results *********");
-            for (int i = 0; i < response.Results.length; i++) {
-                this.WriteLine("[" + i + "]" + " Confidence=" + response.Results[i].Confidence +
-                        " Text=\"" + response.Results[i].DisplayText + "\"");
-                    GetUnderstanding(response.Results[i].DisplayText);
-            }
+        this.WriteLine();
 
-            this.WriteLine();
-        }
     }
 
     /**
@@ -414,38 +329,34 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     public void onIntentReceived(final String payload) {
         this.WriteLine("--- Intent received by onIntentReceived() ---");
         this.WriteLine(payload);
-        System.out.println("Patrick2 " + payload);
-
-
-
 
         try {
             JSONObject jsonObj = new JSONObject(payload);
             JSONArray arr = jsonObj.getJSONArray("intents");
             String topScoringIntent = arr.getJSONObject(0).getString("intent");
-            System.out.println("TOPSCORINGINTENT " +topScoringIntent);
 
 
-            MediaPlayer mp = new MediaPlayer();
 
-            AssetFileDescriptor afd = getAssets().openFd(topScoringIntent.toLowerCase() + "/1.mp3");
-            mp.setDataSource(afd.getFileDescriptor(),afd.getStartOffset(),afd.getLength());
+            String[] files = getAssets().list(topScoringIntent.toLowerCase());
+            AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[files.length];
+            for (int i = 0; i < files.length; i++){
+                topscorefiles[i] = getAssets().openFd(topScoringIntent.toLowerCase() + "/"+ (i + 1) + ".mp3");
+            }
 
+            for(final AssetFileDescriptor tf : topscorefiles){
+                            MediaPlayer mp = new MediaPlayer();
+                            System.out.println(tf.toString());
+                            mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
+                            mp.prepare();
+                            mp.start();
+                            TimeUnit.SECONDS.sleep(5);
 
-            File geluidsbestand = new File("assets/"+ topScoringIntent + "/1.mp3");
-            System.out.println("GELUIDSBESTAND " +geluidsbestand.getName());
-
-
-            //MediaPlayer mp = MediaPlayer.create(this, Uri.parse("assets/"+ topScoringIntent.toLowerCase() + "/1.mp3"));
-
-            //System.out.println("URIPARSE " + Uri.parse("assets/"+ topScoringIntent.toLowerCase() + "/1.mp3"));
-
-            mp.prepare();
-            mp.start();
-
+            }
         } catch (JSONException e) {
             e.printStackTrace();
         } catch (IOException e) {
+            e.printStackTrace();
+        } catch (InterruptedException e){
             e.printStackTrace();
         }
         this.WriteLine();

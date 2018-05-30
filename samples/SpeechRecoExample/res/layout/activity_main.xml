@@ -1,4 +1,5 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
@@ -8,73 +9,34 @@
     android:paddingTop="@dimen/activity_vertical_margin"
     tools:context="com.microsoft.AzureIntelligentServicesExample.MainActivity" >
 
-    <Button
-        android:id="@+id/button1"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
-        android:text="Start" />
-
-    <Button
-        style="?android:attr/buttonStyleSmall"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Select Mode"
-        android:id="@+id/buttonSelectMode"
-        android:layout_alignParentRight="true" />
-
-    <RadioGroup
-        android:id="@+id/groupMode"
-        android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_below="@+id/button1">
-
-        <RadioButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Use Microphone with ShortPhrase mode"
-            android:id="@+id/radioButton"
-            android:layout_above="@+id/micRadioButton"
-            android:layout_alignRight="@+id/editText1" />
-
-        <RadioButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Use Microphone with LongDictation mode"
-            android:id="@+id/micDictationRadioButton" />
-
-        <RadioButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Use Microphone and intent detection"
-            android:id="@+id/micIntentRadioButton" />
-
-        <RadioButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Use wav file for ShortPhrase mode"
-            android:id="@+id/dataShortRadioButton" />
-
-        <RadioButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Use wav file for LongDictation mode"
-            android:id="@+id/dataLongRadioButton" />
-
-        <RadioButton
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Use wav file and intent detection"
-            android:id="@+id/dataShortIntentRadioButton" />
-    </RadioGroup>
-
     <EditText
         android:id="@+id/editText1"
         android:layout_width="fill_parent"
-        android:layout_height="fill_parent"
-        android:layout_below="@+id/button1"
+        android:layout_height="389dp"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentStart="true"
         android:ems="10"
         android:inputType="textMultiLine|textNoSuggestions"
         android:textSize="15dp" />
+
+    <ImageButton
+        android:id="@+id/imageButton"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentStart="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginStart="75dp"
+        android:background="@null"
+        android:src="@drawable/start" />
+
+    <ImageButton
+        android:id="@+id/imageButton2"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentEnd="true"
+        android:layout_alignTop="@+id/imageButton"
+        android:layout_marginEnd="75dp"
+        android:background="@null"
+        android:src="@drawable/stop" />
 
 </RelativeLayout>
