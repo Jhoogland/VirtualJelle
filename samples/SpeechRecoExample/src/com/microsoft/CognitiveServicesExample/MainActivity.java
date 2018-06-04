@@ -117,6 +117,8 @@ import static android.content.ContentValues.TAG;
 public class MainActivity extends Activity implements ISpeechRecognitionServerEvents
 {
     int m_waitSeconds = 0;
+    static Boolean isTrigger = false;
+    static String intentTrigger = "";
     DataRecognitionClient dataClient = null;
     MicrophoneRecognitionClient micClient = null;
     FinalResponseStatus isReceivedResponse = FinalResponseStatus.NotReceived;
@@ -296,24 +298,35 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         try {
             JSONObject jsonObj = new JSONObject(payload);
             JSONArray arr = jsonObj.getJSONArray("intents");
-            String topScoringIntent = arr.getJSONObject(0).getString("intent");
+            String intent = arr.getJSONObject(0).getString("intent").toLowerCase();
 
-            String[] files = getAssets().list(topScoringIntent.toLowerCase());
+
+            String[] files = getAssets().list(intent);
+            if(isTrigger){
+                files = getAssets().list(intentTrigger);
+                isTrigger = false;
+            }
             AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[files.length];
             for (int i = 0; i < files.length; i++){
-                topscorefiles[i] = getAssets().openFd(topScoringIntent.toLowerCase() + "/"+ (i + 1) + ".mp3");
-
+                topscorefiles[i] = getAssets().openFd(intent + "/"+ (i + 1) + ".mp3");
             }
 
             for(final AssetFileDescriptor tf : topscorefiles){
-                            MediaPlayer mp = new MediaPlayer();
+                MediaPlayer mp = new MediaPlayer();
 
-                            System.out.println(tf.toString());
-                            mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
-                            mp.prepare();
-                            playVerbalFeedback();
-                            mp.start();
-                            TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
+                System.out.println(tf.toString());
+                mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
+                mp.prepare();
+                playVerbalFeedback();
+                mp.start();
+                TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
+                if(tf.toString().contains("trigger")){
+                    isTrigger = true;
+                    intentTrigger = tf.toString().substring(tf.toString().lastIndexOf("/") + 1);
+                }
+                else if(tf.toString().equals("einde")){
+                    isTheEnd = true;
+                }
             }
 
             if(!isTheEnd){
@@ -322,7 +335,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             }
 
             else{
-                // eindig hier het gesprek
+                System.exit(1);
             }
 
         } catch (JSONException e) {
@@ -352,6 +365,25 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                             this.getPrimaryKey(),
                             this.getLuisAppId(),
                             this.getLuisSubscriptionID());
+
+            this.micClient.setAuthenticationUri(this.getAuthenticationUri());
+        }
+
+        this.micClient.startMicAndRecognition();
+    }
+
+    public void startMicrophone(String trigger){
+        if (this.micClient == null) {
+            this.WriteLine("--- Start microphone dictation with Intent detection ----");
+
+            this.micClient =
+                    SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
+                            this,
+                            this.getDefaultLocale(),
+                            this,
+                            this.getPrimaryKey(),
+                            this.getLuisAppId(),
+                            this.getLuisSubscriptionID(), trigger);
 
 
             this.micClient.setAuthenticationUri(this.getAuthenticationUri());
