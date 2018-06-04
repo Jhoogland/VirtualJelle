@@ -34,16 +34,22 @@ package com.microsoft.CognitiveServicesExample;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.content.res.AssetFileDescriptor;
 import android.content.res.AssetManager;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
+import android.media.audiofx.NoiseSuppressor;
 import android.net.Uri;
+import android.nfc.Tag;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.os.StrictMode;
 import android.provider.MediaStore;
+import android.speech.RecognizerIntent;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
@@ -98,12 +104,15 @@ import org.json.JSONObject;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
 import android.os.StrictMode;
 import android.widget.Toast;
 
 import javax.net.ssl.HttpsURLConnection;
+
+import static android.content.ContentValues.TAG;
 
 public class MainActivity extends Activity implements ISpeechRecognitionServerEvents
 {
@@ -281,6 +290,9 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         this.WriteLine(payload);
 
         boolean isTheEnd = false;
+
+        NoiseSuppressor noiseSuppressor = null;
+
         try {
             JSONObject jsonObj = new JSONObject(payload);
             JSONArray arr = jsonObj.getJSONArray("intents");
@@ -290,16 +302,18 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[files.length];
             for (int i = 0; i < files.length; i++){
                 topscorefiles[i] = getAssets().openFd(topScoringIntent.toLowerCase() + "/"+ (i + 1) + ".mp3");
+
             }
 
             for(final AssetFileDescriptor tf : topscorefiles){
                             MediaPlayer mp = new MediaPlayer();
+
                             System.out.println(tf.toString());
                             mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
                             mp.prepare();
+                            playVerbalFeedback();
                             mp.start();
                             TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
-
             }
 
             if(!isTheEnd){
@@ -319,6 +333,11 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             e.printStackTrace();
         }
         this.WriteLine();
+
+        if(noiseSuppressor != null)
+        {
+            noiseSuppressor.release();
+        }
     }
 
     public void startMicrophone(){
@@ -425,6 +444,34 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
         this.ShowMenu(false);
         this._startButton.setEnabled(true);
+    }
+
+    /**
+     * Play verbal feedback audiofiles
+     */
+    private void playVerbalFeedback(){
+        MediaPlayer mp2 = new MediaPlayer();
+        Random rand = new Random();
+        int randomFeedback = rand.nextInt(19 + 1 );
+
+        try {
+            if (mp2.isPlaying()){
+                mp2.stop();
+                mp2.release();
+                mp2 = new MediaPlayer();
+            }
+
+            AssetFileDescriptor descriptor = getAssets().openFd("feedback/" + randomFeedback + ".mp3");
+            mp2.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
+            descriptor.close();
+
+            mp2.prepare();
+            mp2.start();
+            TimeUnit.MILLISECONDS.sleep(3500 + mp2.getDuration());
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
     }
 
     /*
