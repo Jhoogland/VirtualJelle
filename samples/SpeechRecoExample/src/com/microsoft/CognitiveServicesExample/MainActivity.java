@@ -357,6 +357,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
     public AssetFileDescriptor[] GetFilesFromPayLoad(String payload){
 
+        AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[0];
         try {
         JSONObject jsonObj = new JSONObject(payload);
         JSONArray arr = jsonObj.getJSONArray("intents");
@@ -367,7 +368,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             files = getAssets().list(intentTrigger);
             isTrigger = false;
 
-        AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[files.length];
+        topscorefiles = new AssetFileDescriptor[files.length];
         for (int i = 0; i < files.length; i++){
             topscorefiles[i] = getAssets().openFd(intent + "/"+ (i + 1) + ".mp3");
         }
@@ -377,28 +378,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         catch(Exception e){
             System.out.println(e);
         }
-
-
-}
-
-    public void startMicrophone(String trigger){
-        if (this.micClient == null) {
-            this.WriteLine("--- Start microphone dictation with Intent detection ----");
-
-            this.micClient =
-                    SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
-                            this,
-                            this.getDefaultLocale(),
-                            this,
-                            this.getPrimaryKey(),
-                            this.getLuisAppId(),
-                            this.getLuisSubscriptionID(), trigger);
-
-
-            this.micClient.setAuthenticationUri(this.getAuthenticationUri());
-        }
-
-        this.micClient.startMicAndRecognition();
+        return topscorefiles;
     }
 
     public void checkEndMicrophone(){
