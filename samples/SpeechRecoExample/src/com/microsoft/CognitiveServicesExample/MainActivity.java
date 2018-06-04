@@ -294,58 +294,25 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         boolean isTheEnd = false;
 
         NoiseSuppressor noiseSuppressor = null;
+        for(final AssetFileDescriptor tf : GetFilesFromPayLoad(payload)){
+            PlayFile(tf);
 
-        try {
-            JSONObject jsonObj = new JSONObject(payload);
-            JSONArray arr = jsonObj.getJSONArray("intents");
-            String intent = arr.getJSONObject(0).getString("intent").toLowerCase();
-
-
-            String[] files = getAssets().list(intent);
-            if(isTrigger){
-                files = getAssets().list(intentTrigger);
-                isTrigger = false;
+            if(tf.toString().contains("trigger")){
+                isTrigger = true;
+                intentTrigger = tf.toString().substring(tf.toString().lastIndexOf("/") + 1);
             }
-            AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[files.length];
-            for (int i = 0; i < files.length; i++){
-                topscorefiles[i] = getAssets().openFd(intent + "/"+ (i + 1) + ".mp3");
+            else if(tf.toString().equals("einde")){
+                isTheEnd = true;
             }
-
-            for(final AssetFileDescriptor tf : topscorefiles){
-                MediaPlayer mp = new MediaPlayer();
-
-                System.out.println(tf.toString());
-                mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
-                mp.prepare();
-                playVerbalFeedback();
-                mp.start();
-                TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
-                if(tf.toString().contains("trigger")){
-                    isTrigger = true;
-                    intentTrigger = tf.toString().substring(tf.toString().lastIndexOf("/") + 1);
-                }
-                else if(tf.toString().equals("einde")){
-                    isTheEnd = true;
-                }
-            }
-
-            if(!isTheEnd){
-                checkEndMicrophone();
-                startMicrophone();
-            }
-
-            else{
-                System.exit(1);
-            }
-
-        } catch (JSONException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        } catch (InterruptedException e){
-            e.printStackTrace();
         }
-        this.WriteLine();
+
+        if(!isTheEnd){
+            checkEndMicrophone();
+            startMicrophone();
+        }
+        else{
+            System.exit(1);
+        }
 
         if(noiseSuppressor != null)
         {
@@ -371,6 +338,48 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
         this.micClient.startMicAndRecognition();
     }
+
+    public void PlayFile(AssetFileDescriptor tf){
+        try {
+            MediaPlayer mp = new MediaPlayer();
+
+            System.out.println(tf.toString());
+            mp.setDataSource(tf.getFileDescriptor(), tf.getStartOffset(), tf.getLength());
+            mp.prepare();
+            playVerbalFeedback();
+            mp.start();
+            TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
+        }
+        catch(Exception e){
+            System.out.println(e);
+        }
+    }
+
+    public AssetFileDescriptor[] GetFilesFromPayLoad(String payload){
+
+        try {
+        JSONObject jsonObj = new JSONObject(payload);
+        JSONArray arr = jsonObj.getJSONArray("intents");
+        String intent = arr.getJSONObject(0).getString("intent").toLowerCase();
+
+        String[] files = getAssets().list(intent);
+        if(isTrigger){
+            files = getAssets().list(intentTrigger);
+            isTrigger = false;
+
+        AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[files.length];
+        for (int i = 0; i < files.length; i++){
+            topscorefiles[i] = getAssets().openFd(intent + "/"+ (i + 1) + ".mp3");
+        }
+
+        return topscorefiles;
+        }}
+        catch(Exception e){
+            System.out.println(e);
+        }
+
+
+}
 
     public void startMicrophone(String trigger){
         if (this.micClient == null) {
