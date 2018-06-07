@@ -104,6 +104,7 @@ import org.json.JSONObject;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.util.ArrayList;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 
@@ -122,6 +123,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     DataRecognitionClient dataClient = null;
     MicrophoneRecognitionClient micClient = null;
     FinalResponseStatus isReceivedResponse = FinalResponseStatus.NotReceived;
+    ArrayList<String> usedFiles = new ArrayList<>();
     EditText _logText;
     ImageButton _startButton;
     ImageButton _stopButton;
@@ -212,7 +214,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         this._stopButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View arg0) {
-                This.StartButton_Click(arg0);
+                System.exit(1);
             }
         });
 
@@ -288,22 +290,28 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
      * Called when a final response is received and its intent is parsed
      */
     public void onIntentReceived(final String payload) {
+        System.out.println("ik kom hier binnen");
         this.WriteLine("--- Intent received by onIntentReceived() ---");
         this.WriteLine(payload);
 
         boolean isTheEnd = false;
 
-        NoiseSuppressor noiseSuppressor = null;
-        for(final AssetFileDescriptor tf : GetFilesFromPayLoad(payload)){
-            PlayFile(tf);
 
-            if(tf.toString().contains("trigger")){
+        AssetFileDescriptor[] afd = GetFilesFromPayLoad(payload);
+
+        for(int i = 0; i < afd.length; i++){
+            int bestand = i + 1;
+            PlayFile(afd[bestand]);
+
+            if(afd[bestand].toString().contains("trigger")){
                 isTrigger = true;
-                intentTrigger = tf.toString().substring(tf.toString().lastIndexOf("/") + 1);
+                intentTrigger = afd[bestand].toString().substring(afd[bestand].toString().lastIndexOf("/") + 1);
             }
-            else if(tf.toString().equals("einde")){
+            else if(afd[bestand].toString().equals("einde")){
                 isTheEnd = true;
             }
+
+
         }
 
         if(!isTheEnd){
@@ -312,11 +320,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         }
         else{
             System.exit(1);
-        }
-
-        if(noiseSuppressor != null)
-        {
-            noiseSuppressor.release();
         }
     }
 
@@ -354,6 +357,26 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             System.out.println(e);
         }
     }
+    public boolean checkUsed(String categorie, int bestand){
+        String fileToCheck = categorie + bestand;
+        boolean equal = false;
+
+        for(String s: usedFiles){
+            if(s == fileToCheck){
+                equal = true;
+                break;
+            }else{
+                equal = false;
+            }
+        }
+        if(equal){
+            return true;
+        }else{
+            usedFiles.add(fileToCheck);
+            return false;
+        }
+
+    }
 
     public AssetFileDescriptor[] GetFilesFromPayLoad(String payload){
 
@@ -364,18 +387,20 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         String intent = arr.getJSONObject(0).getString("intent").toLowerCase();
 
         String[] files = getAssets().list(intent);
-        if(isTrigger){
-            files = getAssets().list(intentTrigger);
+        if(true){
+  // ali heeft dit gecomment.         files = getAssets().list(intentTrigger);
             isTrigger = false;
 
         topscorefiles = new AssetFileDescriptor[files.length];
-        for (int i = 0; i < files.length; i++){
+        for (int i = 0; i < files.length -1; i++){
             topscorefiles[i] = getAssets().openFd(intent + "/"+ (i + 1) + ".mp3");
         }
 
         return topscorefiles;
         }}
         catch(Exception e){
+            System.out.println("IK GA FOUT MAAR IK WORDT GECATCHED IN GETFILESFROMPAYLOAD");
+            e.printStackTrace();
             System.out.println(e);
         }
         return topscorefiles;
@@ -437,35 +462,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         this._logText.append(text + "\n");
     }
 
-    /**
-     * Handles the Click event of the RadioButton control.
-     * @param rGroup The radio grouping.
-     * @param checkedId The checkedId.
-     */
-    private void RadioButton_Click(RadioGroup rGroup, int checkedId) {
-        // Reset everything
-        if (this.micClient != null) {
-            this.micClient.endMicAndRecognition();
-            try {
-                this.micClient.finalize();
-            } catch (Throwable throwable) {
-                throwable.printStackTrace();
-            }
-            this.micClient = null;
-        }
 
-        if (this.dataClient != null) {
-            try {
-                this.dataClient.finalize();
-            } catch (Throwable throwable) {
-                throwable.printStackTrace();
-            }
-            this.dataClient = null;
-        }
-
-        this.ShowMenu(false);
-        this._startButton.setEnabled(true);
-    }
 
     /**
      * Play verbal feedback audiofiles
