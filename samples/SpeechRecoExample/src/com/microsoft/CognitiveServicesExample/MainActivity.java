@@ -452,7 +452,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     private void playVerbalFeedback(){
         MediaPlayer mp2 = new MediaPlayer();
         Random rand = new Random();
-        int randomFeedback = rand.nextInt(19 + 1 );
+        int randomFeedback = rand.nextInt(19 ) + 1;
 
         try {
             if (mp2.isPlaying()){
