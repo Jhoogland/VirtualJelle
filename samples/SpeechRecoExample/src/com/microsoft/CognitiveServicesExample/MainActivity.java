@@ -123,6 +123,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     EditText _logText;
     ImageButton _startButton;
     ImageButton _stopButton;
+    boolean isTheEnd = false;
 
     public enum FinalResponseStatus { NotReceived, OK, Timeout }
 
@@ -265,7 +266,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     }
 
     public void onFinalResponseReceived(final RecognitionResult response) {
-
+        System.out.println("zit in onfinalresponse");
         checkEndMicrophone();
             // we got the final result, so it we can end the mic reco.  No need to do this
             // for dataReco, since we already called endAudio() on it as soon as we were done
@@ -280,6 +281,12 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
         this.WriteLine();
 
+        if(!isTheEnd){
+            startMicrophone();
+        }else{
+            System.exit(1);
+        }
+
     }
 
     /**
@@ -288,42 +295,70 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     public void onIntentReceived(final String payload) {
         this.WriteLine("--- Intent received by onIntentReceived() ---");
         this.WriteLine(payload);
-
-        boolean isTheEnd = false;
-
-        NoiseSuppressor noiseSuppressor = null;
-
         try {
-            JSONObject jsonObj = new JSONObject(payload);
-            JSONArray arr = jsonObj.getJSONArray("intents");
-            String topScoringIntent = arr.getJSONObject(0).getString("intent");
+        boolean beet = false;
+        AssetManager am = getAssets();
+        String[] folders = am.list("intents");
+        MediaPlayer mp = new MediaPlayer();
 
-            String[] files = getAssets().list(topScoringIntent.toLowerCase());
-            AssetFileDescriptor[] topscorefiles = new AssetFileDescriptor[files.length];
-            for (int i = 0; i < files.length; i++){
-                topscorefiles[i] = getAssets().openFd(topScoringIntent.toLowerCase() + "/"+ (i + 1) + ".mp3");
+        for(int folder = 0; folder < folders.length; folder++){
 
+            AssetFileDescriptor[] files = new AssetFileDescriptor[getAssets().list(folders[folder]).length];
+
+            for (int file = 0; file < files.length; file++){
+                if(file == 0){
+
+                    AssetFileDescriptor tf = files[file];
+                    mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
+                    mp.prepare();
+                    mp.start();
+                    TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
+
+                    //luisteren
+                    JSONObject jsonObj = new JSONObject(payload);
+                    JSONArray arr = jsonObj.getJSONArray("intents");
+                    String topScoringIntent = arr.getJSONObject(0).getString("intent");
+                    if(topScoringIntent == folders[folder] || beet){
+                        beet = true;
+                    }else{
+                        beet = false;
+                    }
+
+                }else if(file > 0 || file < files.length){
+                    if(beet){
+
+                        AssetFileDescriptor tf = files[file];
+                        mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
+                        mp.prepare();
+                        mp.start();
+                        TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
+
+                        if(file == files.length - 2){
+                            beet = false;
+                        }
+                    }
+
+                }else if(file == files.length-1){
+                    AssetFileDescriptor tf = files[file];
+                    mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
+                    mp.prepare();
+                    mp.start();
+                    TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
+
+                    //luisteren
+                    JSONObject jsonObj = new JSONObject(payload);
+                    JSONArray arr = jsonObj.getJSONArray("intents");
+                    String topScoringIntent = arr.getJSONObject(0).getString("intent");
+                    if(topScoringIntent == folders[folder] || beet){
+                        beet = true;
+                    }else{
+                        beet = false;
+                    }
+                }
             }
+        }
 
-            for(final AssetFileDescriptor tf : topscorefiles){
-                            MediaPlayer mp = new MediaPlayer();
-
-                            System.out.println(tf.toString());
-                            mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
-                            mp.prepare();
-                            playVerbalFeedback();
-                            mp.start();
-                            TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
-            }
-
-            if(!isTheEnd){
-                checkEndMicrophone();
-                startMicrophone();
-            }
-
-            else{
-                // eindig hier het gesprek
-            }
+            System.out.println("KLAAR BIJ ON INTENT RECEIVED");
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -334,10 +369,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         }
         this.WriteLine();
 
-        if(noiseSuppressor != null)
-        {
-            noiseSuppressor.release();
-        }
     }
 
     public void startMicrophone(){
