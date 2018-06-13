@@ -124,6 +124,8 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     ImageButton _startButton;
     ImageButton _stopButton;
     boolean isTheEnd = false;
+    int folderMemory = 0;
+    int fileMemory = 0;
 
     public enum FinalResponseStatus { NotReceived, OK, Timeout }
 
@@ -301,57 +303,96 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         String[] folders = am.list("intents");
         MediaPlayer mp = new MediaPlayer();
 
-        for(int folder = 0; folder < folders.length; folder++){
 
-            AssetFileDescriptor[] files = new AssetFileDescriptor[getAssets().list(folders[folder]).length];
+        for(int folder = 0; folder < folders.length; folder++){
+            System.out.println("Folder= " + folders[folder]);
+            if(folderMemory > 0){
+                folder = folderMemory;
+            }
+            int a = getAssets().list(folders[folder]).length;
+
+            AssetFileDescriptor[] files = new AssetFileDescriptor[getAssets().list("intents/" + folders[folder]).length];
+
 
             for (int file = 0; file < files.length; file++){
-                if(file == 0){
 
-                    AssetFileDescriptor tf = files[file];
+                if(fileMemory > 0){
+
+                    file = fileMemory;
+                }
+                if(file == 0){
+                    int fileNumber = file + 1;
+                    System.out.println(fileNumber);
+                    AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folder] + "/" + fileNumber + ".mp3");
                     mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
                     mp.prepare();
                     mp.start();
                     TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
+                    mp.reset();
+                    fileMemory = file + 1;
+                    folderMemory = folder;
 
-                    //luisteren
+                    startMicrophone();
                     JSONObject jsonObj = new JSONObject(payload);
                     JSONArray arr = jsonObj.getJSONArray("intents");
                     String topScoringIntent = arr.getJSONObject(0).getString("intent");
-                    if(topScoringIntent == folders[folder] || beet){
+                    System.out.println("Folders substring = " + folders[folder].substring(1));
+                    System.out.println("1TopScore= " + topScoringIntent);
+                    if(topScoringIntent == folders[folder].substring(1) || beet){
                         beet = true;
                     }else{
                         beet = false;
                     }
 
-                }else if(file > 0 || file < files.length){
-                    if(beet){
-
-                        AssetFileDescriptor tf = files[file];
+                }else if(file > 0 && file < files.length -1){
+                    System.out.println("entered else if");
+                    if(beet || folder == 0){
+                        System.out.println("if else if");
+                        int fileNumber = file + 1;
+                        fileMemory = fileMemory +1;
+                        AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folder] + "/" + fileNumber + ".mp3");
                         mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
                         mp.prepare();
                         mp.start();
-                        TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
-
+                        TimeUnit.MILLISECONDS.sleep(1000 + mp.getDuration());
+                        mp.reset();
                         if(file == files.length - 2){
+                            System.out.println("if else if if");
                             beet = false;
                         }
                     }
+                    else{
+                        fileMemory = fileMemory +1;
+                    }
 
                 }else if(file == files.length-1){
-                    AssetFileDescriptor tf = files[file];
+                    System.out.println("entered second else if");
+
+                    int fileNumber = file + 1;
+                    AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folder] + "/" + fileNumber + ".mp3");
                     mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
                     mp.prepare();
                     mp.start();
                     TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
+                    mp.reset();
+                    fileMemory = 0;
 
-                    //luisteren
+                    System.out.println("2FileMemory = " + fileMemory);
+                    folderMemory = folder + 1;
+                    System.out.println("2FolderMemory = " + folderMemory);
+
+                    startMicrophone();
+                    System.out.println("En nu zou die moeten??");
                     JSONObject jsonObj = new JSONObject(payload);
                     JSONArray arr = jsonObj.getJSONArray("intents");
                     String topScoringIntent = arr.getJSONObject(0).getString("intent");
-                    if(topScoringIntent == folders[folder] || beet){
+                    fileMemory = 0;
+                    System.out.println("2Folders substring = " + folders[folderMemory].substring(1));
+                    if(topScoringIntent == folders[folder].substring(1) || beet){
                         beet = true;
+                        System.out.println("Beet = true + " + topScoringIntent);
                     }else{
+                        System.out.println("Beet = false" + topScoringIntent);
                         beet = false;
                     }
                 }
@@ -371,24 +412,34 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
     }
 
+
     public void startMicrophone(){
-        if (this.micClient == null) {
+        if (null != this.micClient) {
+            System.out.println("mic was not null");
+                        // we got the final result, so it we can end the mic reco.  No need to do this
+                                // for dataReco, since we already called endAudio() on it as soon as we were done
+                                        // sending all the data.
+                                                this.micClient.endMicAndRecognition();
+                   }
+
+                       if (this.micClient == null) {
+            System.out.println("mic was null");
             this.WriteLine("--- Start microphone dictation with Intent detection ----");
 
-            this.micClient =
-                    SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
-                            this,
-                            this.getDefaultLocale(),
-                            this,
-                            this.getPrimaryKey(),
-                            this.getLuisAppId(),
-                            this.getLuisSubscriptionID());
+                                this.micClient =
+                                        SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
+                                                        this,
+                                                        this.getDefaultLocale(),
+                                                        this,
+                                                        this.getPrimaryKey(),
+                                                        this.getLuisAppId(),
+                                                        this.getLuisSubscriptionID());
 
 
-            this.micClient.setAuthenticationUri(this.getAuthenticationUri());
-        }
-
-        this.micClient.startMicAndRecognition();
+                                        this.micClient.setAuthenticationUri(this.getAuthenticationUri());
+                    }
+        System.out.println("start the facking recognition");
+                        this.micClient.startMicAndRecognition();
     }
 
     public void checkEndMicrophone(){
