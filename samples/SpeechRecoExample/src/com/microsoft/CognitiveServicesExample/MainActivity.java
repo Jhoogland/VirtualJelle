@@ -294,6 +294,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     /**
      * Called when a final response is received and its intent is parsed
      */
+    
     public void onIntentReceived(final String payload) {
         this.WriteLine("--- Intent received by onIntentReceived() ---");
         this.WriteLine(payload);
@@ -347,6 +348,9 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                 }else if(file > 0 && file < files.length -1){
                     System.out.println("entered else if");
                     if(beet || folder == 0){
+                        //Rommel van Patrick
+                        playVerbalFeedback();
+                        //Rommel van Patrick
                         System.out.println("if else if");
                         int fileNumber = file + 1;
                         fileMemory = fileMemory +1;
@@ -531,10 +535,13 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     /**
      * Play verbal feedback audiofiles
      */
+    boolean skipFeedback = true;
+
     private void playVerbalFeedback(){
         MediaPlayer mp2 = new MediaPlayer();
         Random rand = new Random();
         int randomFeedback = rand.nextInt(19 ) + 1;
+        int randomActivation = rand.nextInt(2);
 
         try {
             if (mp2.isPlaying()){
@@ -547,10 +554,15 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             mp2.setDataSource(descriptor.getFileDescriptor(), descriptor.getStartOffset(), descriptor.getLength());
             descriptor.close();
 
-            mp2.prepare();
-            mp2.start();
-            TimeUnit.MILLISECONDS.sleep(3500 + mp2.getDuration());
-
+            if (skipFeedback == true){
+                //Do nothing and set boolean to false to start else loop next time
+                skipFeedback = false;
+            }
+            else if(skipFeedback == false && randomActivation == 1){
+                mp2.prepare();
+                mp2.start();
+                TimeUnit.MILLISECONDS.sleep(3500);
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
