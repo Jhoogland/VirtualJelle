@@ -126,6 +126,10 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     boolean isTheEnd = false;
     int folderMemory = 0;
     int fileMemory = 0;
+    boolean skipFeedback = true;
+    private Object lock = new Object();
+
+
 
     public enum FinalResponseStatus { NotReceived, OK, Timeout }
 
@@ -269,11 +273,10 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
     public void onFinalResponseReceived(final RecognitionResult response) {
         System.out.println("zit in onfinalresponse");
-        checkEndMicrophone();
-            // we got the final result, so it we can end the mic reco.  No need to do this
-            // for dataReco, since we already called endAudio() on it as soon as we were done
-            // sending all the data.
-            this.micClient.endMicAndRecognition();
+        // we got the final result, so it we can end the mic reco.  No need to do this
+        // for dataReco, since we already called endAudio() on it as soon as we were done
+        // sending all the data.
+        this.micClient.endMicAndRecognition();
 
         this.WriteLine("********* Final n-BEST Results *********");
         for (int i = 0; i < response.Results.length; i++) {
@@ -284,7 +287,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         this.WriteLine();
 
         if(!isTheEnd){
-            startMicrophone();
+            //startMicrophone();
         }else{
             System.exit(1);
         }
@@ -294,114 +297,172 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     /**
      * Called when a final response is received and its intent is parsed
      */
-    
     public void onIntentReceived(final String payload) {
         this.WriteLine("--- Intent received by onIntentReceived() ---");
         this.WriteLine(payload);
         try {
-        boolean beet = false;
-        AssetManager am = getAssets();
-        String[] folders = am.list("intents");
-        MediaPlayer mp = new MediaPlayer();
 
+            boolean beet = false;
+            AssetManager am = getAssets();
+            String[] folders = am.list("intents");
+            MediaPlayer mp = new MediaPlayer();
 
-        for(int folder = 0; folder < folders.length; folder++){
-            System.out.println("Folder= " + folders[folder]);
-            if(folderMemory > 0){
-                folder = folderMemory;
+            AssetFileDescriptor intentFile = GetIntentFile(payload);
+            AssetFileDescriptor[] intentFiles = GetAssetsFromFolder("intents");
+            System.out.println("First folder memory= " + folderMemory);
+            if(folderMemory == 0){
+                System.out.println("folderMemory Foldersss= " + folders[folderMemory]);
+                intentFiles = GetAssetsFromFolder(folders[folderMemory]);
+                beet = true;
+                System.out.println("FolderMemory number1= " + folderMemory);
+                System.out.println("FileMemory number1= " + fileMemory);
             }
-            int a = getAssets().list(folders[folder]).length;
 
-            AssetFileDescriptor[] files = new AssetFileDescriptor[getAssets().list("intents/" + folders[folder]).length];
+            else{
+                System.out.println("FolderMemory == 0");
+                JSONObject jsonObj = new JSONObject(payload);
 
+                JSONArray arr = jsonObj.getJSONArray("intents");
+                String topScoringIntent = arr.getJSONObject(0).getString("intent");
+                System.out.println("this is the test??" + payload);
+                System.out.println(topScoringIntent.toLowerCase().trim());
+                System.out.println(folders[folderMemory].substring(1).trim());
 
-            for (int file = 0; file < files.length; file++){
-
-                if(fileMemory > 0){
-
-                    file = fileMemory;
+                if (topScoringIntent.toLowerCase().trim() == "vend") {
+                    System.out.println("New folder: " + folders[2]);
+                    beet = true;
+                    intentFiles = GetAssetsFromFolder(folders[2]);
+                    System.out.println("IntentFiles folder = " + folders[folderMemory +1]);
                 }
-                if(file == 0){
-                    int fileNumber = file + 1;
-                    System.out.println(fileNumber);
-                    AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folder] + "/" + fileNumber + ".mp3");
-                    mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
-                    mp.prepare();
-                    mp.start();
-                    TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
-                    mp.reset();
-                    fileMemory = file + 1;
-                    folderMemory = folder;
+                if (topScoringIntent.toLowerCase().trim() == "monster") {
+                    System.out.println("New folder: " + folders[1]);
+                    beet = true;
+                    intentFiles = GetAssetsFromFolder(folders[1]);
+                    System.out.println("IntentFiles folder = " + folders[folderMemory +1]);
+                }
 
-                    startMicrophone();
-                    JSONObject jsonObj = new JSONObject(payload);
-                    JSONArray arr = jsonObj.getJSONArray("intents");
-                    String topScoringIntent = arr.getJSONObject(0).getString("intent");
-                    System.out.println("Folders substring = " + folders[folder].substring(1));
-                    System.out.println("1TopScore= " + topScoringIntent);
-                    if(topScoringIntent == folders[folder].substring(1) || beet){
-                        beet = true;
-                    }else{
-                        beet = false;
+//                else{
+//
+//                    System.out.println("niet beet dus foldermemory ++");
+//                    if(folderMemory != 2){
+//                        folderMemory++;
+//                    }
+//                    fileMemory = 0;// go to first file from next folder
+//                }
+            }
+
+            if (fileMemory == 0 && folderMemory != 0) {
+                System.out.println("FolderMemory number= " + folderMemory);
+                System.out.println("FileMemory number= " + fileMemory);
+                System.out.println("FileMemory == 0");
+                JSONObject jsonObj = new JSONObject(payload);
+
+                JSONArray arr = jsonObj.getJSONArray("intents");
+                String topScoringIntent = arr.getJSONObject(0).getString("intent");
+                System.out.println("topscoreIntent =" + topScoringIntent);
+
+                //System.out.println("Dit is folders" + folders[folderMemory + 1].substring(1));
+                System.out.println("Dit is folderMemory" + folderMemory);
+
+                if (topScoringIntent == folders[folderMemory].substring(1)) {
+                    beet = true;
+                    // intentFiles = GetAssetsFromFolder(folders[folderMemory + 1]);
+                    System.out.println("IntentFiles folder222 = " + folders[folderMemory]);
+                    if(folderMemory != 2){
+                        folderMemory++;
                     }
-
-                }else if(file > 0 && file < files.length -1){
-                    System.out.println("entered else if");
-                    if(beet || folder == 0){
-                        //Rommel van Patrick
-                        playVerbalFeedback();
-                        //Rommel van Patrick
-                        System.out.println("if else if");
-                        int fileNumber = file + 1;
-                        fileMemory = fileMemory +1;
-                        AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folder] + "/" + fileNumber + ".mp3");
-                        mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
-                        mp.prepare();
-                        mp.start();
-                        TimeUnit.MILLISECONDS.sleep(1000 + mp.getDuration());
-                        mp.reset();
-                        if(file == files.length - 2){
-                            System.out.println("if else if if");
-                            beet = false;
-                        }
-                    }
-                    else{
-                        fileMemory = fileMemory +1;
-                    }
-
-                }else if(file == files.length-1){
-                    System.out.println("entered second else if");
-
-                    int fileNumber = file + 1;
-                    AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folder] + "/" + fileNumber + ".mp3");
-                    mp.setDataSource(tf.getFileDescriptor(),tf.getStartOffset(),tf.getLength());
-                    mp.prepare();
-                    mp.start();
-                    TimeUnit.MILLISECONDS.sleep(5000 + mp.getDuration());
-                    mp.reset();
                     fileMemory = 0;
-
-                    System.out.println("2FileMemory = " + fileMemory);
-                    folderMemory = folder + 1;
-                    System.out.println("2FolderMemory = " + folderMemory);
-
-                    startMicrophone();
-                    System.out.println("En nu zou die moeten??");
-                    JSONObject jsonObj = new JSONObject(payload);
-                    JSONArray arr = jsonObj.getJSONArray("intents");
-                    String topScoringIntent = arr.getJSONObject(0).getString("intent");
-                    fileMemory = 0;
-                    System.out.println("2Folders substring = " + folders[folderMemory].substring(1));
-                    if(topScoringIntent == folders[folder].substring(1) || beet){
-                        beet = true;
-                        System.out.println("Beet = true + " + topScoringIntent);
-                    }else{
-                        System.out.println("Beet = false" + topScoringIntent);
-                        beet = false;
+                }
+                else{
+                    System.out.println("else topScoringIntent == folders[folderMemory + 1].substring(1)");
+                    if(folderMemory != 2){
+                        folderMemory++;
                     }
+                    fileMemory = 0;
+                    // volgende map
                 }
             }
-        }
+
+            else if(fileMemory == GetAssetsFromFolder(folders[folderMemory]).length){
+                JSONObject jsonObj = new JSONObject(payload);
+
+                JSONArray arr = jsonObj.getJSONArray("intents");
+                String topScoringIntent = arr.getJSONObject(0).getString("intent");
+                System.out.println("topscoreIntent" + topScoringIntent);
+
+                if (topScoringIntent.toLowerCase() == folders[folderMemory + 1].substring(1)) {
+                    beet = true;
+                    // intentFiles = GetAssetsFromFolder(folders[folderMemory + 1]);
+                    System.out.println("IntentFiles folder222 = " + folders[folderMemory +1]);
+                    if(folderMemory != 2){
+                        folderMemory++;
+                    }
+
+                    fileMemory=1;
+                }
+                else{
+                    System.out.println("else topScoringIntent == folders[folderMemory]");
+                    if(folderMemory != 2){
+                        folderMemory++;
+                    }
+                    fileMemory = 0;
+                    // volgende map
+                }
+            }
+            System.out.println("intentFiles.lenght= " + intentFiles.length);
+            if (intentFiles.length > 0 && beet) {
+                System.out.println("intent files .lenght > 1" + intentFiles.length);
+                beet = false;
+                for (int intentFileCount = 0; intentFileCount < intentFiles.length; intentFileCount++) {
+                    int fileNumber = intentFileCount +1;
+                    System.out.println("intentFileCount= " + intentFileCount);
+                    AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folderMemory] + "/" + fileNumber + ".mp3");
+
+                    //Rommel van patrick
+                    playVerbalFeedback();
+                    //Rommel van patrick
+
+                    System.out.println("intents/" + folders[folderMemory] + "/" + fileNumber + ".mp3");
+                    mp.setDataSource(tf.getFileDescriptor(), tf.getStartOffset(), tf.getLength());
+                    mp.prepare();
+                    mp.start();
+                    synchronized(lock) {
+                        lock.wait(5000 + mp.getDuration());
+                    }
+                    mp.reset();
+
+                    fileMemory++;
+
+                    if(intentFiles.length == intentFileCount){
+                        fileMemory = 0;
+                    }
+                }
+            } else {
+
+                fileMemory = 0;
+//                System.out.println("Else intentFile= " + intentFile.toString());
+//
+//                mp.setDataSource(intentFile.getFileDescriptor(), intentFile.getStartOffset(), intentFile.getLength());
+//                mp.prepare();
+//                mp.start();
+//                System.out.println("Duureation= " + mp.getDuration());
+//                synchronized(lock) {
+//                    lock.wait(1000 + mp.getDuration());
+//                }
+//                mp.reset();
+
+            }
+
+            System.out.println("Try If= " + fileMemory);
+            System.out.println("Try If= " + GetAssetsFromFolder(folders[folderMemory]).length);
+            if(fileMemory == GetAssetsFromFolder(folders[folderMemory]).length){
+                // folderMemory++;
+
+                System.out.println("Start the microphone!");
+                // fileMemory = 0;
+                startMicrophone();
+
+            }
 
             System.out.println("KLAAR BIJ ON INTENT RECEIVED");
 
@@ -409,41 +470,86 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (InterruptedException e){
-            e.printStackTrace();
+        } catch(Exception ex){
+            System.out.println(ex);
         }
         this.WriteLine();
 
     }
 
 
+    public AssetFileDescriptor GetIntentFile(String intent)
+    {
+        try
+        {
+            AssetManager am = getAssets();
+            String[] folders = am.list("intents");
+            for(int folder = 0; folder < folders.length; folder++) {
+                if (folderMemory > 0) {
+                    folder = folderMemory;
+                }
+
+                AssetFileDescriptor[] files = new AssetFileDescriptor[getAssets().list("intents/" + folders[folder]).length];
+
+                for (int file = 0; file < files.length; file++)
+                {
+                    if(fileMemory > 0){
+
+                        file = fileMemory;
+                    }
+                    int fileNumber = file + 1;
+                    return getAssets().openFd("intents/" + folders[folder] + "/" + fileNumber + ".mp3");
+                }
+            }
+        }
+        catch(Exception ex)
+        {
+            System.out.println(ex);
+        }
+        return null;
+    }
+
+    public AssetFileDescriptor[] GetAssetsFromFolder(String folderName){
+        try{
+            System.out.println("est folder=  intents/" + folderName);
+            return new AssetFileDescriptor[getAssets().list("intents/" + folderName).length];
+        }
+        catch(Exception ex)
+        {
+            System.out.println(ex);
+        }
+
+        return null;
+    }
+
+
     public void startMicrophone(){
         if (null != this.micClient) {
             System.out.println("mic was not null");
-                        // we got the final result, so it we can end the mic reco.  No need to do this
-                                // for dataReco, since we already called endAudio() on it as soon as we were done
-                                        // sending all the data.
-                                                this.micClient.endMicAndRecognition();
-                   }
+            // we got the final result, so it we can end the mic reco.  No need to do this
+            // for dataReco, since we already called endAudio() on it as soon as we were done
+            // sending all the data.
+            this.micClient.endMicAndRecognition();
+        }
 
-                       if (this.micClient == null) {
+        if (this.micClient == null) {
             System.out.println("mic was null");
             this.WriteLine("--- Start microphone dictation with Intent detection ----");
 
-                                this.micClient =
-                                        SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
-                                                        this,
-                                                        this.getDefaultLocale(),
-                                                        this,
-                                                        this.getPrimaryKey(),
-                                                        this.getLuisAppId(),
-                                                        this.getLuisSubscriptionID());
+            this.micClient =
+                    SpeechRecognitionServiceFactory.createMicrophoneClientWithIntent(
+                            this,
+                            this.getDefaultLocale(),
+                            this,
+                            this.getPrimaryKey(),
+                            this.getLuisAppId(),
+                            this.getLuisSubscriptionID());
 
 
-                                        this.micClient.setAuthenticationUri(this.getAuthenticationUri());
-                    }
+            this.micClient.setAuthenticationUri(this.getAuthenticationUri());
+        }
         System.out.println("start the facking recognition");
-                        this.micClient.startMicAndRecognition();
+        this.micClient.startMicAndRecognition();
     }
 
     public void checkEndMicrophone(){
@@ -535,7 +641,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     /**
      * Play verbal feedback audiofiles
      */
-    boolean skipFeedback = true;
 
     private void playVerbalFeedback(){
         MediaPlayer mp2 = new MediaPlayer();
@@ -561,7 +666,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
             else if(skipFeedback == false && randomActivation == 1){
                 mp2.prepare();
                 mp2.start();
-                TimeUnit.MILLISECONDS.sleep(3500);
+                synchronized(lock) { lock.wait(3500 + mp2.getDuration());}
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -569,11 +674,11 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     }
 
     /*
-     * Speech recognition with data (for example from a file or audio source).  
+     * Speech recognition with data (for example from a file or audio source).
      * The data is broken up into buffers and each buffer is sent to the Speech Recognition Service.
      * No modification is done to the buffers, so the user can apply their
      * own VAD (Voice Activation Detection) or Silence Detection
-     * 
+     *
      * @param dataClient
      * @param recoMode
      * @param filename
