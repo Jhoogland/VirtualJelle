@@ -301,170 +301,107 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         this.WriteLine("--- Intent received by onIntentReceived() ---");
         this.WriteLine(payload);
         try {
-
             boolean beet = false;
             AssetManager am = getAssets();
             String[] folders = am.list("intents");
             MediaPlayer mp = new MediaPlayer();
 
-            AssetFileDescriptor intentFile = GetIntentFile(payload);
+            // set default intents (null)
             AssetFileDescriptor[] intentFiles = GetAssetsFromFolder("intents");
-            System.out.println("First folder memory= " + folderMemory);
+
+            // get assets from first folder
             if(folderMemory == 0){
-                System.out.println("folderMemory Foldersss= " + folders[folderMemory]);
                 intentFiles = GetAssetsFromFolder(folders[folderMemory]);
                 beet = true;
-                System.out.println("FolderMemory number1= " + folderMemory);
-                System.out.println("FileMemory number1= " + fileMemory);
             }
 
+            // get assets from current folder
             else{
-                System.out.println("FolderMemory == 0");
                 JSONObject jsonObj = new JSONObject(payload);
-
                 JSONArray arr = jsonObj.getJSONArray("intents");
                 String topScoringIntent = arr.getJSONObject(0).getString("intent");
-                System.out.println("this is the test??" + payload);
-                System.out.println(topScoringIntent.toLowerCase().trim());
-                System.out.println(folders[folderMemory].substring(1).trim());
 
-                if (topScoringIntent.toLowerCase().trim() == "vend") {
-                    System.out.println("New folder: " + folders[2]);
+                if (topScoringIntent.toLowerCase().trim().equals("vend")) {
                     beet = true;
                     intentFiles = GetAssetsFromFolder(folders[2]);
-                    System.out.println("IntentFiles folder = " + folders[folderMemory +1]);
                 }
-                if (topScoringIntent.toLowerCase().trim() == "monster") {
-                    System.out.println("New folder: " + folders[1]);
+                if (topScoringIntent.toLowerCase().trim().equals("monster")) {
                     beet = true;
                     intentFiles = GetAssetsFromFolder(folders[1]);
-                    System.out.println("IntentFiles folder = " + folders[folderMemory +1]);
                 }
-
-//                else{
-//
-//                    System.out.println("niet beet dus foldermemory ++");
-//                    if(folderMemory != 2){
-//                        folderMemory++;
-//                    }
-//                    fileMemory = 0;// go to first file from next folder
-//                }
             }
 
+            // Check if trigger is caught
             if (fileMemory == 0 && folderMemory != 0) {
-                System.out.println("FolderMemory number= " + folderMemory);
-                System.out.println("FileMemory number= " + fileMemory);
-                System.out.println("FileMemory == 0");
                 JSONObject jsonObj = new JSONObject(payload);
-
                 JSONArray arr = jsonObj.getJSONArray("intents");
                 String topScoringIntent = arr.getJSONObject(0).getString("intent");
-                System.out.println("topscoreIntent =" + topScoringIntent);
-
-                //System.out.println("Dit is folders" + folders[folderMemory + 1].substring(1));
-                System.out.println("Dit is folderMemory" + folderMemory);
 
                 if (topScoringIntent == folders[folderMemory].substring(1)) {
                     beet = true;
-                    // intentFiles = GetAssetsFromFolder(folders[folderMemory + 1]);
-                    System.out.println("IntentFiles folder222 = " + folders[folderMemory]);
-                    if(folderMemory != 2){
-                        folderMemory++;
-                    }
-                    fileMemory = 0;
+                    intentFiles = GetAssetsFromFolder(folders[folderMemory]);
                 }
-                else{
-                    System.out.println("else topScoringIntent == folders[folderMemory + 1].substring(1)");
-                    if(folderMemory != 2){
-                        folderMemory++;
-                    }
                     fileMemory = 0;
                     // volgende map
-                }
             }
 
+            // if filememory equals the number of files in current folder, check for trigger
             else if(fileMemory == GetAssetsFromFolder(folders[folderMemory]).length){
                 JSONObject jsonObj = new JSONObject(payload);
-
                 JSONArray arr = jsonObj.getJSONArray("intents");
                 String topScoringIntent = arr.getJSONObject(0).getString("intent");
-                System.out.println("topscoreIntent" + topScoringIntent);
 
+                // if topscore intent equals the next folder, go to next folder
                 if (topScoringIntent.toLowerCase() == folders[folderMemory + 1].substring(1)) {
                     beet = true;
-                    // intentFiles = GetAssetsFromFolder(folders[folderMemory + 1]);
-                    System.out.println("IntentFiles folder222 = " + folders[folderMemory +1]);
-                    if(folderMemory != 2){
-                        folderMemory++;
-                    }
-
-                    fileMemory=1;
                 }
-                else{
-                    System.out.println("else topScoringIntent == folders[folderMemory]");
                     if(folderMemory != 2){
+                        // volgende map
+                        System.out.println("++");
                         folderMemory++;
                     }
                     fileMemory = 0;
-                    // volgende map
-                }
             }
-            System.out.println("intentFiles.lenght= " + intentFiles.length);
+
+            // if trigger is caught, play files
             if (intentFiles.length > 0 && beet) {
-                System.out.println("intent files .lenght > 1" + intentFiles.length);
-                beet = false;
-                for (int intentFileCount = 0; intentFileCount < intentFiles.length; intentFileCount++) {
+                    for (int intentFileCount = 0; intentFileCount < intentFiles.length; intentFileCount++) {
+
+                    if(beet){
+                        intentFileCount++;
+                        beet = false;
+                    }
+
                     int fileNumber = intentFileCount +1;
-                    System.out.println("intentFileCount= " + intentFileCount);
-                    AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folderMemory] + "/" + fileNumber + ".mp3");
-
-                    //Rommel van patrick
+                    AssetFileDescriptor tf = getAssets().openFd("intents/" + folders[folderMemory] + "/" + fileNumber  + ".mp3");
                     playVerbalFeedback();
-                    //Rommel van patrick
 
-                    System.out.println("intents/" + folders[folderMemory] + "/" + fileNumber + ".mp3");
+                    // play file
                     mp.setDataSource(tf.getFileDescriptor(), tf.getStartOffset(), tf.getLength());
                     mp.prepare();
                     mp.start();
                     synchronized(lock) {
-                        lock.wait(5000 + mp.getDuration());
+                        lock.wait(1000 + mp.getDuration());
                     }
                     mp.reset();
 
                     fileMemory++;
 
-                    if(intentFiles.length == intentFileCount){
+                    if(intentFiles.length == intentFileCount+1){
                         fileMemory = 0;
+                        folderMemory++;
+                        System.out.println("1++");
                     }
                 }
             } else {
-
                 fileMemory = 0;
-//                System.out.println("Else intentFile= " + intentFile.toString());
-//
-//                mp.setDataSource(intentFile.getFileDescriptor(), intentFile.getStartOffset(), intentFile.getLength());
-//                mp.prepare();
-//                mp.start();
-//                System.out.println("Duureation= " + mp.getDuration());
-//                synchronized(lock) {
-//                    lock.wait(1000 + mp.getDuration());
-//                }
-//                mp.reset();
+                }
 
-            }
-
-            System.out.println("Try If= " + fileMemory);
-            System.out.println("Try If= " + GetAssetsFromFolder(folders[folderMemory]).length);
-            if(fileMemory == GetAssetsFromFolder(folders[folderMemory]).length){
-                // folderMemory++;
-
+            // If every file of a folder is played, start microphone for next intent
+            if(fileMemory == GetAssetsFromFolder(folders[folderMemory]).length || fileMemory == 0){
                 System.out.println("Start the microphone!");
-                // fileMemory = 0;
                 startMicrophone();
-
             }
-
-            System.out.println("KLAAR BIJ ON INTENT RECEIVED");
 
         } catch (JSONException e) {
             e.printStackTrace();
@@ -524,16 +461,15 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
 
     public void startMicrophone(){
-        if (null != this.micClient) {
-            System.out.println("mic was not null");
-            // we got the final result, so it we can end the mic reco.  No need to do this
-            // for dataReco, since we already called endAudio() on it as soon as we were done
-            // sending all the data.
-            this.micClient.endMicAndRecognition();
-        }
-
+//        if (null != this.micClient) {
+//            System.out.println("mic was not null");
+//            // we got the final result, so it we can end the mic reco.  No need to do this
+//            // for dataReco, since we already called endAudio() on it as soon as we were done
+//            // sending all the data.
+//            this.micClient.endMicAndRecognition();
+//        }
+        this.micClient = null;
         if (this.micClient == null) {
-            System.out.println("mic was null");
             this.WriteLine("--- Start microphone dictation with Intent detection ----");
 
             this.micClient =
@@ -548,7 +484,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
             this.micClient.setAuthenticationUri(this.getAuthenticationUri());
         }
-        System.out.println("start the facking recognition");
         this.micClient.startMicAndRecognition();
     }
 
