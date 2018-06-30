@@ -341,7 +341,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                     intentFiles = GetAssetsFromFolder(folders[folderMemory]);
                 }
                     fileMemory = 0;
-                    // volgende map
+                    // next folder
             }
 
             // if filememory equals the number of files in current folder, check for trigger
@@ -355,7 +355,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                     beet = true;
                 }
                     if(folderMemory != 2){
-                        // volgende map
+                        // next folder
                         folderMemory++;
                     }
                     fileMemory = 0;
@@ -379,7 +379,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                     mp.prepare();
                     mp.start();
                     synchronized(lock) {
-                        lock.wait(1000 + mp.getDuration());
+                        lock.wait(5000 + mp.getDuration());
                     }
                     mp.reset();
 
