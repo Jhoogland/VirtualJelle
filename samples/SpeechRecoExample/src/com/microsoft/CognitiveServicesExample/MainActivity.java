@@ -272,7 +272,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
     }
 
     public void onFinalResponseReceived(final RecognitionResult response) {
-        System.out.println("zit in onfinalresponse");
         // we got the final result, so it we can end the mic reco.  No need to do this
         // for dataReco, since we already called endAudio() on it as soon as we were done
         // sending all the data.
@@ -357,7 +356,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                 }
                     if(folderMemory != 2){
                         // volgende map
-                        System.out.println("++");
                         folderMemory++;
                     }
                     fileMemory = 0;
@@ -390,7 +388,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
                     if(intentFiles.length == intentFileCount+1){
                         fileMemory = 0;
                         folderMemory++;
-                        System.out.println("1++");
                     }
                 }
             } else {
@@ -448,7 +445,6 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
 
     public AssetFileDescriptor[] GetAssetsFromFolder(String folderName){
         try{
-            System.out.println("est folder=  intents/" + folderName);
             return new AssetFileDescriptor[getAssets().list("intents/" + folderName).length];
         }
         catch(Exception ex)
