@@ -217,7 +217,7 @@ public class MainActivity extends Activity implements ISpeechRecognitionServerEv
         this._stopButton.setOnClickListener(new OnClickListener() {
             @Override
             public void onClick(View arg0) {
-                This.StartButton_Click(arg0);
+               System.exit(1);
             }
         });
 
